@@ -464,8 +464,10 @@ async function formatFiles(context) {
 
     if (isDifferent) {
       if (context.argv.check) {
+        formatResultsCache?.removeEntry(filename);
         context.logger.warn(filename);
       } else if (context.argv.listDifferent) {
+        formatResultsCache?.removeEntry(filename);
         context.logger.log(filename);
       }
       numberOfUnformattedFilesFound += 1;

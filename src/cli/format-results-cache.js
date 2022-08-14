@@ -88,6 +88,10 @@ class FormatResultsCache {
     }
   }
 
+  removeEntry(filePath) {
+    this.fileEntryCache.removeEntry(filePath);
+  }
+
   reconcile() {
     this.fileEntryCache.reconcile();
   }
