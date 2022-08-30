@@ -286,39 +286,8 @@ async function formatStdin(context) {
   }
 }
 
-async function formatFiles(context) {
-  // The ignorer will be used to filter file paths after the glob is checked,
-  // before any files are actually written
-  const ignorer = await createIgnorerFromContextOrDie(context);
-
+async function foo(context, formatResultsCache, performanceTestFlag, ignorer) {
   let numberOfUnformattedFilesFound = 0;
-  const { performanceTestFlag } = context;
-
-  if (context.argv.check && !performanceTestFlag) {
-    context.logger.log("Checking formatting...");
-  }
-
-  let formatResultsCache;
-  const cacheFilePath = await findCacheFile(context.argv.cacheLocation);
-  if (context.argv.cache) {
-    formatResultsCache = new FormatResultsCache(
-      cacheFilePath,
-      context.argv.cacheStrategy || "content"
-    );
-  } else {
-    if (context.argv.cacheStrategy) {
-      context.logger.error(
-        "`--cache-strategy` cannot be used without `--cache`."
-      );
-      process.exit(2);
-    }
-    if (!context.argv.cacheLocation) {
-      const stat = await statSafe(cacheFilePath);
-      if (stat) {
-        await fs.unlink(cacheFilePath);
-      }
-    }
-  }
 
   for await (const pathOrError of expandPatterns(context)) {
     if (typeof pathOrError === "object") {
@@ -420,6 +389,7 @@ async function formatFiles(context) {
       context.logger.log(
         `'${performanceTestFlag.name}' option found, skipped print code or write files.`
       );
+      // TODO
       return;
     }
 
@@ -471,6 +441,50 @@ async function formatFiles(context) {
       numberOfUnformattedFilesFound += 1;
     }
   }
+
+  return numberOfUnformattedFilesFound;
+}
+
+async function formatFiles(context) {
+  // The ignorer will be used to filter file paths after the glob is checked,
+  // before any files are actually written
+  const ignorer = await createIgnorerFromContextOrDie(context);
+
+  let numberOfUnformattedFilesFound = 0;
+  const { performanceTestFlag } = context;
+
+  if (context.argv.check && !performanceTestFlag) {
+    context.logger.log("Checking formatting...");
+  }
+
+  let formatResultsCache;
+  const cacheFilePath = await findCacheFile(context.argv.cacheLocation);
+  if (context.argv.cache) {
+    formatResultsCache = new FormatResultsCache(
+      cacheFilePath,
+      context.argv.cacheStrategy || "content"
+    );
+  } else {
+    if (context.argv.cacheStrategy) {
+      context.logger.error(
+        "`--cache-strategy` cannot be used without `--cache`."
+      );
+      process.exit(2);
+    }
+    if (!context.argv.cacheLocation) {
+      const stat = await statSafe(cacheFilePath);
+      if (stat) {
+        await fs.unlink(cacheFilePath);
+      }
+    }
+  }
+
+  numberOfUnformattedFilesFound += await foo(
+    context,
+    formatResultsCache,
+    performanceTestFlag,
+    ignorer
+  );
 
   formatResultsCache?.reconcile();
 
